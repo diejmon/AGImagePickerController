@@ -10,7 +10,7 @@
 //  
 
 #import "AGIPCGridItem.h"
-
+#import "AGIPCGridItem+Private.h"
 
 #import "AGImagePickerController+Helper.h"
 
@@ -31,11 +31,7 @@
 @property (nonatomic, strong) UIView *selectionView;
 @property (nonatomic, strong) UIImageView *checkmarkImageView;
 
-+ (void)resetNumberOfSelections;
-
 @end
-
-static NSUInteger numberOfSelectedGridItems = 0;
 
 @implementation AGIPCGridItem
 
@@ -65,12 +61,12 @@ static NSUInteger numberOfSelectedGridItems = 0;
             
             if (_selected)
             {
-                numberOfSelectedGridItems++;
+                [self increaseNumberOfSelectedGridItems];
             }
             else
             {
-                if (numberOfSelectedGridItems > 0)
-                    numberOfSelectedGridItems--;
+                if ([[self class] numberOfSelections] > 0)
+                    [self decreaseNumberOfSelectedGridItems];
             }
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -82,7 +78,7 @@ static NSUInteger numberOfSelectedGridItems = 0;
                 
                 if ([self.delegate respondsToSelector:@selector(agGridItem:didChangeNumberOfSelections:)])
                 {
-                    [self.delegate performSelector:@selector(agGridItem:didChangeNumberOfSelections:) withObject:self withObject:@(numberOfSelectedGridItems)];
+                    [self.delegate performSelector:@selector(agGridItem:didChangeNumberOfSelections:) withObject:self withObject:@([[self class] numberOfSelections])];
                 }
                 
             });
@@ -202,15 +198,5 @@ static NSUInteger numberOfSelectedGridItems = 0;
 }
 
 #pragma mark - Private
-
-+ (void)resetNumberOfSelections
-{
-    numberOfSelectedGridItems = 0;
-}
-
-+ (NSUInteger)numberOfSelections
-{
-    return numberOfSelectedGridItems;
-}
 
 @end

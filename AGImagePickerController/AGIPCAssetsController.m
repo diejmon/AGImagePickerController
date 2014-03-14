@@ -10,11 +10,12 @@
 //  
 
 #import "AGIPCAssetsController.h"
-
 #import "AGImagePickerController+Helper.h"
 
 #import "AGIPCGridCell.h"
 #import "AGIPCToolbarItem.h"
+#import "AGIPCGridItem+Private.h"
+#import "AGImagePickerController+Private.h"
 
 @interface AGIPCAssetsController ()
 {
@@ -234,7 +235,10 @@
     
     // Fullscreen
     if (self.imagePickerController.shouldChangeStatusBarStyle) {
-        self.wantsFullScreenLayout = YES;
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+      self.wantsFullScreenLayout = YES;
+#else
+#endif
     }
     
     // Setup Notifications

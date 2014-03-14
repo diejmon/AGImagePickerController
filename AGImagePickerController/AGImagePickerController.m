@@ -12,16 +12,12 @@
 #import "AGImagePickerController.h"
 
 #import "AGIPCAlbumsController.h"
-#import "AGIPCGridItem.h"
+#import "AGIPCGridItem+Private.h"
 
 @interface AGImagePickerController ()
 {
     
 }
-
-- (void)didFinishPickingAssets:(NSArray *)selectedAssets;
-- (void)didCancelPickingAssets;
-- (void)didFail:(NSError *)error;
 
 @end
 
@@ -67,10 +63,16 @@
         _shouldChangeStatusBarStyle = shouldChangeStatusBarStyle;
         
         if (_shouldChangeStatusBarStyle)
-            if (IS_IPAD())
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+          if (IS_IPAD()) {
                 [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:YES];
-            else
+          }
+          else {
                 [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:YES];
+          }
+#else
+        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
+#endif
         else
             [[UIApplication sharedApplication] setStatusBarStyle:_oldStatusBarStyle animated:YES];
     }
@@ -161,56 +163,6 @@ andShouldShowSavedPhotosOnTop:(BOOL)shouldShowSavedPhotosOnTop
 - (NSUInteger)supportedInterfaceOrientations
 {
     return UIInterfaceOrientationMaskAll;
-}
-
-#pragma mark - Private
-
-- (void)didFinishPickingAssets:(NSArray *)selectedAssets
-{
-    [self popToRootViewControllerAnimated:NO];
-    
-    // Reset the number of selections
-    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
-    
-    if (self.didFinishBlock)
-        self.didFinishBlock(selectedAssets);
-    
-	if (_pickerFlags.delegateDidFinishPickingMediaWithInfo)
-    {
-		[self.delegate performSelector:@selector(agImagePickerController:didFinishPickingMediaWithInfo:) withObject:self withObject:selectedAssets];
-	}
-}
-
-- (void)didCancelPickingAssets
-{
-    [self popToRootViewControllerAnimated:NO];
-    
-    // Reset the number of selections
-    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
-    
-    if (self.didFailBlock)
-        self.didFailBlock(nil);
-    
-    if (_pickerFlags.delegateDidFail)
-    {
-		[self.delegate performSelector:@selector(agImagePickerController:didFail:) withObject:self withObject:nil];
-	}
-}
-
-- (void)didFail:(NSError *)error
-{
-    [self popToRootViewControllerAnimated:NO];
-    
-    // Reset the number of selections
-    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
-    
-    if (self.didFailBlock)
-        self.didFailBlock(error);
-    
-    if (_pickerFlags.delegateDidFail)
-    {
-		[self.delegate performSelector:@selector(agImagePickerController:didFail:) withObject:self withObject:error];
-	}
 }
 
 @end

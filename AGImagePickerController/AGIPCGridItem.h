@@ -44,6 +44,4 @@
 
 - (void)tap;
 
-+ (NSUInteger)numberOfSelections;
-
 @end
