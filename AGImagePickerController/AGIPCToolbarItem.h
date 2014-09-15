@@ -24,6 +24,6 @@ typedef BOOL (^AGIPCAssetIsSelectedBlock)(NSUInteger index, ALAsset *asset);
 @property (copy) AGIPCAssetIsSelectedBlock assetIsSelectedBlock;
 
 - (id)initWithBarButtonItem:(UIBarButtonItem *)theBarButtonItem;
-- (id)initWithBarButtonItem:(UIBarButtonItem *)theBarButtonItem andSelectionBlock:(AGIPCAssetIsSelectedBlock)theSelectionBlock;
+- (id)initWithBarButtonItem:(UIBarButtonItem *)theBarButtonItem andSelectionBlock:(AGIPCAssetIsSelectedBlock)theSelectionBlock NS_DESIGNATED_INITIALIZER;
 
 @end
