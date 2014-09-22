@@ -297,7 +297,7 @@
         @autoreleasepool {
             [strongSelf.assetsGroup enumerateAssetsUsingBlock:^(ALAsset *result, NSUInteger index, BOOL *stop) {
                 
-                if (result == nil) 
+                if (result == nil || result.defaultRepresentation == nil)
                 {
                     return;
                 }

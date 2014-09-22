@@ -141,7 +141,13 @@
     
     ALAssetsGroup *group = (self.assetsGroups)[indexPath.row];
     [group setAssetsFilter:[ALAssetsFilter allPhotos]];
-    NSUInteger numberOfAssets = group.numberOfAssets;
+    __block NSUInteger numberOfAssets = 0;
+  
+    [group enumerateAssetsUsingBlock:^(ALAsset *result, NSUInteger index, BOOL *stop) {
+      if (result.defaultRepresentation) {
+        numberOfAssets++;
+      }
+    }];
     
     cell.textLabel.text = [NSString stringWithFormat:@"%@", [group valueForProperty:ALAssetsGroupPropertyName]];
     cell.detailTextLabel.text = [NSString stringWithFormat:@"%lu", (unsigned long)numberOfAssets];
