@@ -10,13 +10,13 @@
 //  
 
 #import "AGIPCGridItem.h"
-#import "AGIPCGridItem+Private.h"
 
 #import "AGImagePickerController+Helper.h"
+#import "UIButton+AGIPC.h"
 
 @interface AGIPCGridItem ()
 {
-    __weak AGImagePickerController *_imagePickerController;
+    __ag_weak AGImagePickerController *_imagePickerController;
     ALAsset *_asset;
     id<AGIPCGridItemDelegate> __ag_weak _delegate;
     
@@ -24,14 +24,20 @@
     
     UIImageView *_thumbnailImageView;
     UIView *_selectionView;
-    UIImageView *_checkmarkImageView;
+    //UIImageView *_checkmarkImageView;
+    UIButton *_checkmarkImageView;
 }
 
 @property (nonatomic, strong) UIImageView *thumbnailImageView;
 @property (nonatomic, strong) UIView *selectionView;
-@property (nonatomic, strong) UIImageView *checkmarkImageView;
+//@property (nonatomic, strong) UIImageView *checkmarkImageView;
+@property (nonatomic, strong) UIButton *checkmarkImageView;
+
++ (void)resetNumberOfSelections;
 
 @end
+
+static NSUInteger numberOfSelectedGridItems = 0;
 
 @implementation AGIPCGridItem
 
@@ -56,17 +62,23 @@
             
             _selected = selected;
             
-            self.selectionView.hidden = !_selected;
-            self.checkmarkImageView.hidden = !_selected;
+            //self.selectionView.hidden = !_selected;
+            //self.checkmarkImageView.hidden = !_selected;
+            if (self.selected) {
+                //[self.checkmarkImageView setImage:[UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-1"] forState:UIControlStateNormal];
+                [self.checkmarkImageView setImageWithAnimation:[UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-1"] forState:UIControlStateNormal];
+            } else {
+                [self.checkmarkImageView setImage:[UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-0"] forState:UIControlStateNormal];
+            }
             
             if (_selected)
             {
-                [self increaseNumberOfSelectedGridItems];
+                numberOfSelectedGridItems++;
             }
             else
             {
-                if ([[self class] numberOfSelections] > 0)
-                    [self decreaseNumberOfSelectedGridItems];
+                if (numberOfSelectedGridItems > 0)
+                    numberOfSelectedGridItems--;
             }
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -78,7 +90,7 @@
                 
                 if ([self.delegate respondsToSelector:@selector(agGridItem:didChangeNumberOfSelections:)])
                 {
-                    [self.delegate performSelector:@selector(agGridItem:didChangeNumberOfSelections:) withObject:self withObject:@([[self class] numberOfSelections])];
+                    [self.delegate performSelector:@selector(agGridItem:didChangeNumberOfSelections:) withObject:self withObject:@(numberOfSelectedGridItems)];
                 }
                 
             });
@@ -101,8 +113,6 @@
         if (_asset != asset)
         {
             _asset = asset;
-            // Drawing must be exectued in main thread. springox(20131218)
-            //self.thumbnailImageView.image = [UIImage imageWithCGImage:_asset.thumbnail];
         }
     }
 }
@@ -137,26 +147,20 @@
         CGRect checkmarkFrame = [self.imagePickerController checkmarkFrameUsingItemFrame:frame];
         
         self.thumbnailImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
-        // Drawing must be exectued in main thread. springox(20131220)
-		//self.thumbnailImageView.contentMode = UIViewContentModeScaleToFill;
+
 		[self addSubview:self.thumbnailImageView];
         
-        self.selectionView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
-        // Drawing must be exectued in main thread. springox(20131220)
-        //self.selectionView.backgroundColor = [UIColor whiteColor];
-        //self.selectionView.alpha = .5f;
-        //self.selectionView.hidden = !self.selected;
-        [self addSubview:self.selectionView];
+        //self.selectionView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, frame.size.width, frame.size.height)];
+
+        //[self addSubview:self.selectionView];
         
-        // Position the checkmark image in the bottom right corner
-        self.checkmarkImageView = [[UIImageView alloc] initWithFrame:checkmarkFrame];
-        // Drawing must be exectued in main thread. springox(20131220)
-        //if (IS_IPAD())
-        //    self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPad"];
-        //else
-        //    self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPhone"];
-        //self.checkmarkImageView.hidden = !self.selected;
-		[self addSubview:self.checkmarkImageView];
+        //self.checkmarkImageView = [[UIImageView alloc] initWithFrame:checkmarkFrame];
+        self.checkmarkImageView = [[UIButton alloc] initWithFrame:checkmarkFrame];
+        
+        [self addSubview:self.checkmarkImageView];
+        
+        // 多增加对打钩的tap手势响应，springox(20140520)
+        [self.checkmarkImageView addTarget:self action:@selector(tapCheckMark) forControlEvents:UIControlEventTouchUpInside];
         
         self.asset = asset;
     }
@@ -170,15 +174,20 @@
     
     self.thumbnailImageView.contentMode = UIViewContentModeScaleToFill;
 
-    self.selectionView.backgroundColor = [UIColor whiteColor];
-    self.selectionView.alpha = .5f;
-    self.selectionView.hidden = !self.selected;
+    //self.selectionView.backgroundColor = [UIColor whiteColor];
+    //self.selectionView.alpha = .5f;
+    //self.selectionView.hidden = !self.selected;
 
-    if (IS_IPAD())
-    self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPad"];
-    else
-    self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPhone"];
-    self.checkmarkImageView.hidden = !self.selected;
+    //if (IS_IPAD())
+    //self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPad"];
+    //else
+    //self.checkmarkImageView.image = [UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-iPhone"];
+    //self.checkmarkImageView.hidden = !self.selected;
+    if (self.selected) {
+        [self.checkmarkImageView setImage:[UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-1"] forState:UIControlStateNormal];
+    } else {
+        [self.checkmarkImageView setImage:[UIImage imageNamed:@"AGImagePickerController.bundle/AGIPC-Checkmark-0"] forState:UIControlStateNormal];
+    }
 }
 
 // Drawing must be exectued in main thread. springox(20131218)
@@ -192,11 +201,40 @@
 
 #pragma mark - Others
 
-- (void)tap
+- (void)tap:(id)sender
+{
+    UITapGestureRecognizer *gesRecongnizer = (UITapGestureRecognizer *)sender;
+    if (UIGestureRecognizerStateEnded == gesRecongnizer.state) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
+            if ([self.delegate respondsToSelector:@selector(agGridItemDidTapAction:)])
+            {
+                [self.delegate performSelector:@selector(agGridItemDidTapAction:) withObject:self];
+            }
+            else
+            {
+                [self tapCheckMark];
+            }
+            
+        });
+    }
+}
+
+- (void)tapCheckMark
 {
     self.selected = !self.selected;
 }
 
 #pragma mark - Private
+
++ (void)resetNumberOfSelections
+{
+    numberOfSelectedGridItems = 0;
+}
+
++ (NSUInteger)numberOfSelections
+{
+    return numberOfSelectedGridItems;
+}
 
 @end

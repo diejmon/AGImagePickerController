@@ -35,7 +35,10 @@
         
         __block AGViewController *blockSelf = self;
         
-        ipc = [[AGImagePickerController alloc] initWithDelegate:self];
+        //ipc = [[AGImagePickerController alloc] initWithDelegate:self];
+        // modified by springox(20140503)
+        ipc = [AGImagePickerController sharedInstance:self];
+        
         ipc.didFailBlock = ^(NSError *error) {
             NSLog(@"Fail. Error: %@", error);
             
@@ -66,7 +69,6 @@
             [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault animated:YES];
         };
     }
-    
     return self;
 }
 
@@ -109,7 +111,7 @@
     ipc.shouldShowSavedPhotosOnTop = NO;
     ipc.shouldChangeStatusBarStyle = YES;
     ipc.selection = self.selectedPhotos;
-//    ipc.maximumNumberOfPhotosToBeSelected = 10;
+    ipc.maximumNumberOfPhotosToBeSelected = 10;
     
     // Custom toolbar items
     AGIPCToolbarItem *selectAll = [[AGIPCToolbarItem alloc] initWithBarButtonItem:[[UIBarButtonItem alloc] initWithTitle:@"+ Select All" style:UIBarButtonItemStyleBordered target:nil action:nil] andSelectionBlock:^BOOL(NSUInteger index, ALAsset *asset) {
@@ -123,10 +125,11 @@
         return NO;
     }];  
     ipc.toolbarItemsForManagingTheSelection = @[selectAll, flexible, selectOdd, flexible, deselectAll];
-//    imagePickerController.toolbarItemsForManagingTheSelection = [NSArray array];
-    
-//    imagePickerController.maximumNumberOfPhotos = 3;
+
     [self presentModalViewController:ipc animated:YES];
+    
+    // modified by springox(20140503)
+    [ipc showFirstAssetsController];
 }
 
 #pragma mark - AGImagePickerControllerDelegate methods
@@ -138,13 +141,16 @@
     if (deviceType == AGDeviceTypeiPad)
     {
         if (UIInterfaceOrientationIsLandscape(interfaceOrientation))
-            return 7;
+            return 11;
         else
-            return 6;
+            return 8;
     } else {
-        if (UIInterfaceOrientationIsLandscape(interfaceOrientation))
-            return 5;
-        else
+        if (UIInterfaceOrientationIsLandscape(interfaceOrientation)) {
+            if (480 == self.view.bounds.size.width) {
+                return 6;
+            }
+            return 7;
+        } else
             return 4;
     }
 }

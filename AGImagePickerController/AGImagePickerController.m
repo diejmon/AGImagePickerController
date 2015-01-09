@@ -12,16 +12,62 @@
 #import "AGImagePickerController.h"
 
 #import "AGIPCAlbumsController.h"
-#import "AGIPCGridItem+Private.h"
+#import "AGIPCGridItem.h"
+
+static AGImagePickerController *_sharedInstance = nil;
 
 @interface AGImagePickerController ()
 {
     
 }
 
+- (void)didFinishPickingAssets:(NSArray *)selectedAssets;
+- (void)didCancelPickingAssets;
+- (void)didFail:(NSError *)error;
+
 @end
 
 @implementation AGImagePickerController
+
++ (ALAssetsLibrary *)defaultAssetsLibrary
+{
+    static ALAssetsLibrary *assetsLibrary = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        assetsLibrary = [[ALAssetsLibrary alloc] init];
+        
+        // Workaround for triggering ALAssetsLibraryChangedNotification
+        [assetsLibrary writeImageToSavedPhotosAlbum:nil metadata:nil completionBlock:^(NSURL *assetURL, NSError *error) { }];
+    });
+    
+    return assetsLibrary;
+}
+
++ (AGImagePickerController *)sharedInstance:(id)delegate
+{
+    if (nil == _sharedInstance){
+        @synchronized(self) {
+            if (nil == _sharedInstance){
+                _sharedInstance  = [AGImagePickerController imagePickerWithDelegate:nil];
+            }
+        }
+    }
+    _sharedInstance.delegate = delegate;
+    return _sharedInstance;
+}
+
++ (AGImagePickerController *)imagePickerWithDelegate:(id<AGImagePickerControllerDelegate, NSObject>)delegate
+{
+    AGImagePickerController *picker = [[AGImagePickerController alloc] initWithDelegate:delegate];
+    
+    // Show saved photos on top
+    picker.shouldShowSavedPhotosOnTop = YES;
+    picker.shouldChangeStatusBarStyle = YES;
+    picker.maximumNumberOfPhotosToBeSelected = 5;
+    picker.toolbarItemsForManagingTheSelection = @[];
+
+    return picker;
+}
 
 #pragma mark - Properties
 
@@ -63,33 +109,13 @@
         _shouldChangeStatusBarStyle = shouldChangeStatusBarStyle;
         
         if (_shouldChangeStatusBarStyle)
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
-          if (IS_IPAD()) {
+            if (IS_IPAD())
                 [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:YES];
-          }
-          else {
+            else
                 [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:YES];
-          }
-#else
-        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
-#endif
         else
             [[UIApplication sharedApplication] setStatusBarStyle:_oldStatusBarStyle animated:YES];
     }
-}
-
-+ (ALAssetsLibrary *)defaultAssetsLibrary
-{
-    static ALAssetsLibrary *assetsLibrary = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        assetsLibrary = [[ALAssetsLibrary alloc] init];
-        
-        // Workaround for triggering ALAssetsLibraryChangedNotification
-        [assetsLibrary writeImageToSavedPhotosAlbum:nil metadata:nil completionBlock:^(NSURL *assetURL, NSError *error) { }];
-    });
-    
-    return assetsLibrary;
 }
 
 #pragma mark - Object Lifecycle
@@ -126,23 +152,16 @@ andShouldShowSavedPhotosOnTop:(BOOL)shouldShowSavedPhotosOnTop
         self.shouldChangeStatusBarStyle = shouldChangeStatusBarStyle;
         self.shouldShowSavedPhotosOnTop = shouldShowSavedPhotosOnTop;
         
-        UIBarStyle barStyle;
-        
-        if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_6_1)
-        {
-            // iOS 6.1 or earlier
-            
-            barStyle = UIBarStyleBlack;
-        }
-        else
-        {
-            // iOS 7 or later
-            
-            barStyle = UIBarStyleDefault;
-        }
-        self.navigationBar.barStyle = barStyle;
+        /*
+        self.navigationBar.barStyle = UIBarStyleBlack;
         self.navigationBar.translucent = YES;
-        self.toolbar.barStyle = barStyle;
+        self.toolbar.barStyle = UIBarStyleBlack;
+        self.toolbar.translucent = YES;
+         */
+        // change the bar style for ios7, springox(20131225)
+        self.navigationBar.barStyle = UIBarStyleDefault;
+        self.navigationBar.translucent = YES;
+        self.toolbar.barStyle = UIBarStyleDefault;
         self.toolbar.translucent = YES;
         
         self.toolbarItemsForManagingTheSelection = toolbarItemsForManagingTheSelection;
@@ -158,11 +177,75 @@ andShouldShowSavedPhotosOnTop:(BOOL)shouldShowSavedPhotosOnTop
     return self;
 }
 
+- (void)showFirstAssetsController
+{
+    AGIPCAlbumsController *albumsCtl = (AGIPCAlbumsController *)[self.viewControllers firstObject];
+    if ([albumsCtl respondsToSelector:@selector(pushFirstAssetsController)]) {
+        [albumsCtl pushFirstAssetsController];
+    }
+}
+
 #pragma mark - View lifecycle
 
 - (NSUInteger)supportedInterfaceOrientations
 {
     return UIInterfaceOrientationMaskAll;
+}
+
+#pragma mark - Private
+
+- (void)didFinishPickingAssets:(NSArray *)selectedAssets
+{
+    //[self popToRootViewControllerAnimated:NO];
+    
+    self.userIsDenied = NO;
+    
+    // Reset the number of selections
+    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
+    
+    if (self.didFinishBlock)
+        self.didFinishBlock(selectedAssets);
+    
+	if (_pickerFlags.delegateDidFinishPickingMediaWithInfo)
+    {
+		[self.delegate performSelector:@selector(agImagePickerController:didFinishPickingMediaWithInfo:) withObject:self withObject:selectedAssets];
+	}
+}
+
+- (void)didCancelPickingAssets
+{
+    //[self popToRootViewControllerAnimated:NO];
+    
+    // Reset the number of selections
+    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
+    
+    if (self.didFailBlock)
+        self.didFailBlock(nil);
+    
+    if (_pickerFlags.delegateDidFail)
+    {
+		[self.delegate performSelector:@selector(agImagePickerController:didFail:) withObject:self withObject:nil];
+	}
+}
+
+- (void)didFail:(NSError *)error
+{
+    if (nil != error) {
+        self.userIsDenied = YES;
+    }
+    
+    [self popToRootViewControllerAnimated:NO];
+    
+    // Reset the number of selections
+    [AGIPCGridItem performSelector:@selector(resetNumberOfSelections)];
+    
+    if (self.didFailBlock)
+        self.didFailBlock(error);
+    
+    if (_pickerFlags.delegateDidFail)
+    {
+		[self.delegate performSelector:@selector(agImagePickerController:didFail:) withObject:self withObject:error];
+	}
 }
 
 @end

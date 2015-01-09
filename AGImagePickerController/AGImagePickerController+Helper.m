@@ -22,6 +22,8 @@
         AGDeviceType deviceType = self.deviceType;
         UIInterfaceOrientation interfaceOrientation = self.interfaceOrientation;
         
+        // fixed the bug that will lead to crash in iPhone6/6Plus with [invocation invokeWithTarget:self.delegate], springox(20141224)
+        /*
         SEL selector = @selector(agImagePickerController:numberOfItemsPerRowForDevice:andInterfaceOrientation:);
         Protocol *protocol = @protocol(AGImagePickerControllerDelegate);
         
@@ -43,6 +45,12 @@
             return ret;
         } else
             return self.defaultNumberOfItemsPerRow;
+         */
+        
+        if (nil != self.delegate && [self.delegate respondsToSelector:@selector(agImagePickerController:numberOfItemsPerRowForDevice:andInterfaceOrientation:)]) {
+            return [self.delegate agImagePickerController:self numberOfItemsPerRowForDevice:deviceType andInterfaceOrientation:interfaceOrientation];
+        }
+        return self.defaultNumberOfItemsPerRow;
     } else {
         return self.defaultNumberOfItemsPerRow;
     }
@@ -82,6 +90,8 @@
 {
     if (_pickerFlags.delegateSelectionBehaviorInSingleSelectionMode)
     {
+        // fixed the bug that will lead to crash in iPhone6/6Plus with [invocation invokeWithTarget:self.delegate], springox(20141224)
+        /*
         SEL selector = @selector(selectionBehaviorInSingleSelectionModeForAGImagePickerController:);
         Protocol *protocol = @protocol(AGImagePickerControllerDelegate);
         
@@ -101,6 +111,12 @@
             return ret;
         } else
             return SELECTION_BEHAVIOR_IN_SINGLE_SELECTION_MODE;
+         */
+        
+        if (nil != self.delegate && [self.delegate respondsToSelector:@selector(selectionBehaviorInSingleSelectionModeForAGImagePickerController:)]) {
+            return [self.delegate selectionBehaviorInSingleSelectionModeForAGImagePickerController:self];
+        }
+        return SELECTION_BEHAVIOR_IN_SINGLE_SELECTION_MODE;
     } else {
         return SELECTION_BEHAVIOR_IN_SINGLE_SELECTION_MODE;
     }
@@ -114,6 +130,8 @@
     {
         AGImagePickerControllerSelectionMode selectionMode = self.selectionMode;
         
+        // fixed the bug that will lead to crash in iPhone6/6Plus with [invocation invokeWithTarget:self.delegate], springox(20141224)
+        /*
         SEL selector = @selector(agImagePickerController:shouldDisplaySelectionInformationInSelectionMode:);
         Protocol *protocol = @protocol(AGImagePickerControllerDelegate);
         
@@ -134,6 +152,12 @@
             return ret;
         } else
             return SHOULD_DISPLAY_SELECTION_INFO;
+        */
+        
+        if (nil != self.delegate && [self.delegate respondsToSelector:@selector(agImagePickerController:shouldDisplaySelectionInformationInSelectionMode:)]) {
+            return [self.delegate agImagePickerController:self shouldDisplaySelectionInformationInSelectionMode:selectionMode];
+        }
+        return SHOULD_DISPLAY_SELECTION_INFO;
     } else {
         return SHOULD_DISPLAY_SELECTION_INFO;
     }
@@ -145,6 +169,8 @@
     {
         AGImagePickerControllerSelectionMode selectionMode = self.selectionMode;
         
+        // fixed the bug that will lead to crash in iPhone6/6Plus with [invocation invokeWithTarget:self.delegate], springox(20141224)
+        /*
         SEL selector = @selector(agImagePickerController:shouldShowToolbarForManagingTheSelectionInSelectionMode:);
         Protocol *protocol = @protocol(AGImagePickerControllerDelegate);
         
@@ -165,6 +191,12 @@
             return ret;
         } else
             return SHOULD_SHOW_TOOLBAR_FOR_MANAGING_THE_SELECTION;
+         */
+        
+        if (nil != self.delegate && [self.delegate respondsToSelector:@selector(agImagePickerController:shouldShowToolbarForManagingTheSelectionInSelectionMode:)]) {
+            return [self.delegate agImagePickerController:self shouldShowToolbarForManagingTheSelectionInSelectionMode:selectionMode];
+        }
+        return SHOULD_SHOW_TOOLBAR_FOR_MANAGING_THE_SELECTION;
     } else {
         return SHOULD_SHOW_TOOLBAR_FOR_MANAGING_THE_SELECTION;
     }
@@ -193,7 +225,11 @@
     CGFloat width = bounds.size.width;
     
     if (UIInterfaceOrientationIsLandscape(self.interfaceOrientation)) {
-        width = bounds.size.height;
+        // modified by springox(20141024)
+        //width = bounds.size.height;
+        if (bounds.size.width < bounds.size.height) {
+            width = bounds.size.height;
+        }
     }
     
     CGFloat x = 0, y = 0;

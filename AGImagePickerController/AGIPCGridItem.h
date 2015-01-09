@@ -22,7 +22,8 @@
 - (void)agGridItem:(AGIPCGridItem *)gridItem didChangeSelectionState:(NSNumber *)selected;
 - (void)agGridItem:(AGIPCGridItem *)gridItem didChangeNumberOfSelections:(NSNumber *)numberOfSelections;
 - (BOOL)agGridItemCanSelect:(AGIPCGridItem *)gridItem;
-
+// add by springox(20140520)
+- (void)agGridItemDidTapAction:(AGIPCGridItem *)gridItem;
 @end
 
 @interface AGIPCGridItem : UIView
@@ -32,16 +33,17 @@
 
 @property (assign) BOOL selected;
 @property (strong) ALAsset *asset;
-
-@property (nonatomic, ag_weak) id<AGIPCGridItemDelegate> delegate;
-
-@property (weak) AGImagePickerController *imagePickerController;
+@property (ag_weak) id<AGIPCGridItemDelegate> delegate;
+// change strong to weak, springox(20140422)
+@property (ag_weak) AGImagePickerController *imagePickerController;
 
 - (id)initWithImagePickerController:(AGImagePickerController *)imagePickerController andAsset:(ALAsset *)asset;
 - (id)initWithImagePickerController:(AGImagePickerController *)imagePickerController asset:(ALAsset *)asset andDelegate:(id<AGIPCGridItemDelegate>)delegate;
 
 - (void)loadImageFromAsset;
 
-- (void)tap;
+- (void)tap:(id)sender;
+
++ (NSUInteger)numberOfSelections;
 
 @end
